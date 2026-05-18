@@ -311,7 +311,7 @@ function RadioRow({ selected, onClick, icon, title, sub, badge, badgeLime }) {
 }
 
 function StepBar({ step }) {
-  const steps = ["Корзина", "Карта Туту", "Оплата"];
+  const steps = ["Корзина", "Оплата"];
   return (
     <div style={{ display: "flex", alignItems: "center", padding: "0 16px", marginBottom: 16 }}>
       {steps.map((s, i) => (
@@ -439,7 +439,7 @@ function ConsentsScreen({ onNext, clientType }) {
       <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.1, marginBottom: 10, color: C.black, letterSpacing: "-0.6px" }}>Откройте<br/>Туту Кошелёк</div>
       <div style={{ fontSize: 14, color: C.sub, marginBottom: 18, lineHeight: 1.5 }}>
         {clientType === "existing"
-          ? "Привяжите карту Альфа-Банка и оплачивайте покупки в Золотом Яблоке кошельком"
+          ? "Привяжите карту Альфа-Банка к Туту Кошельку — оплачивайте билеты и отели быстрее"
           : "Моментально выпустим бесплатную карту для кошелька и привяжем к способу оплаты"}
       </div>
       {[
@@ -639,7 +639,7 @@ function SelectAlfaCardScreen({ onNext }) {
   return (
     <div style={{ padding: "22px 16px" }}>
       <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: C.black, letterSpacing: "-0.5px" }}>Выберите карту</div>
-      <div style={{ fontSize: 13, color: C.sub, marginBottom: 16 }}>Привяжем её к Туту Кошелёк для оплаты в Туту</div>
+      <div style={{ fontSize: 13, color: C.sub, marginBottom: 16 }}>Привяжем её к Туту Кошельку для оплаты на Туту</div>
       {cards.map((c, i) => (
         <div key={i} onClick={() => setSel(i)} style={{
           display: "flex", alignItems: "center", gap: 12,
@@ -664,7 +664,7 @@ function SelectAlfaCardScreen({ onNext }) {
         </div>
       ))}
       <div style={{ marginTop: 14 }}>
-        <PrimaryBtn label="Привязать к Туту Кошелёк" onClick={onNext}/>
+        <PrimaryBtn label="Привязать к Туту Кошельку" onClick={onNext}/>
       </div>
     </div>
   );
@@ -763,7 +763,7 @@ function TopupScreen({ onNext, onSkip }) {
 
   return (
     <div style={{ padding: "22px 16px" }}>
-      <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 6, color: C.black, letterSpacing: "-0.5px" }}>Пополните кошелек</div>
+      <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 6, color: C.black, letterSpacing: "-0.5px" }}>Пополните кошелёк</div>
       <div style={{ fontSize: 13, color: C.sub, marginBottom: 16 }}>Перевод через СБП с карты другого банка</div>
 
       <div style={{
@@ -952,7 +952,7 @@ function DeliveredScreen({ onNext }) {
         <CheckIcon size={40} color={C.black}/>
       </div>
       <div style={{ fontSize: 24, fontWeight: 800, color: C.black, marginBottom: 6, letterSpacing: "-0.5px" }}>Карта заказана!</div>
-      <div style={{ fontSize: 13, color: C.sub, marginBottom: 18 }}>Пластиковая Туту Кошелёк приедет с курьером</div>
+      <div style={{ fontSize: 13, color: C.sub, marginBottom: 18 }}>Пластиковый Туту Кошелёк приедет с курьером</div>
 
       <div style={{
         padding: 16, borderRadius: 16, background: C.bgWarm,
@@ -1088,130 +1088,36 @@ function Step1({ onNext }) {
         <span style={{ fontSize: 28, fontWeight: 800, color: C.black, letterSpacing: "-0.6px" }}>{TOTAL_AMOUNT.toFixed(0)} ₽</span>
       </div>
       <Divider/>
-      <div style={{ padding: "14px 16px 0" }}>
+      <div style={{ padding: "14px 16px 12px" }}>
         <div style={{
-          padding: "14px 16px", borderRadius: 16, cursor: "pointer",
-          background: C.lime, display: "flex", alignItems: "center", gap: 12
-        }} onClick={onNext}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 12, background: C.black,
-            display: "flex", alignItems: "center", justifyContent: "center"
-          }}>
-            <AppleIcon size={22} color={C.lime}/>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: C.black }}>Карта Туту</div>
-            <div style={{ fontSize: 12, color: C.black, opacity: 0.7, marginTop: 2 }}>Покажите QR для начисления баллов</div>
-          </div>
-          <ChevronRight size={20} color={C.black}/>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Step2({ onNext }) {
-  const [scanned, setScanned] = useState(false);
-  const [scanning, setScanning] = useState(false);
-
-  const handleScan = () => {
-    if (scanned) return;
-    setScanning(true);
-    setTimeout(() => { setScanning(false); setScanned(true); }, 1800);
-  };
-
-  return (
-    <div style={{ paddingBottom: 16 }}>
-      <div style={{ padding: "14px 16px 12px", display: "flex", alignItems: "center", gap: 14 }}>
-        <YabloPayCardSvg width={92}/>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: C.black }}>Туту Кошелёк</div>
-          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>*4209 · Баланс 1 850 ₽</div>
-          <div style={{ fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
-            <span style={{ fontSize: 13 }}>✦</span>
-            <span style={{ color: C.black, fontWeight: 700 }}>1 240 баллов</span>
-            <span style={{ color: C.sub }}>= 124 ₽</span>
-          </div>
-        </div>
-      </div>
-      <Divider/>
-      <div style={{ padding: "20px 16px 12px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div style={{
-          padding: 14, background: scanned ? C.lime : C.white,
-          borderRadius: 18, position: "relative",
-          border: `2px solid ${scanned ? C.black : scanning ? C.lime : C.border}`,
-          transition: "all .3s", cursor: "pointer"
-        }} onClick={handleScan}>
-          <QrCodeSvg size={172} highlight={!scanned}/>
-          {scanning && !scanned && (
-            <div style={{ position: "absolute", inset: 14, borderRadius: 12, overflow: "hidden", pointerEvents: "none" }}>
-              <div style={{
-                position: "absolute", left: 0, right: 0, height: 2.5,
-                background: `linear-gradient(90deg, transparent, ${C.black}, transparent)`,
-                animation: "laser 1.4s ease-in-out infinite"
-              }}/>
-              <style>{`@keyframes laser{0%,100%{top:10%}50%{top:88%}}`}</style>
-            </div>
-          )}
-          {scanned && (
-            <div style={{
-              position: "absolute", inset: 0, borderRadius: 16,
-              background: "rgba(214,227,0,0.3)",
-              display: "flex", alignItems: "center", justifyContent: "center"
-            }}>
-              <div style={{
-                width: 64, height: 64, borderRadius: "50%", background: C.black,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                animation: "pop .4s ease"
-              }}>
-                <CheckIcon size={32} color={C.lime}/>
-              </div>
-            </div>
-          )}
-        </div>
-        <div style={{ marginTop: 14, textAlign: "center" }}>
-          {scanned
-            ? <div style={{ color: C.black, fontWeight: 800, fontSize: 15 }}>✓ Карта распознана</div>
-            : scanning
-            ? <div style={{ color: C.black, fontSize: 14, fontWeight: 600 }}>Сканирование…</div>
-            : <>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.black, marginBottom: 4 }}>Покажите QR на кассе</div>
-                <div style={{ fontSize: 12, color: C.sub }}>или нажмите для симуляции сканирования</div>
-              </>
-          }
-        </div>
-        <div style={{ marginTop: 8 }}>
-          <span style={{ fontSize: 11, color: C.sub, letterSpacing: 1.5, fontFamily: "monospace" }}>4830 0011 8274 6619</span>
-        </div>
-      </div>
-      {scanned && (
-        <div style={{
-          margin: "0 16px 12px", padding: "13px 16px", borderRadius: 14,
-          background: C.lime, display: "flex", alignItems: "center", gap: 12
+          padding: "12px 14px", borderRadius: 14, background: C.limeLight,
+          border: `1px solid ${C.limeSoft}`,
+          display: "flex", gap: 10, alignItems: "center"
         }}>
-          <span style={{ fontSize: 22 }}>✦</span>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: C.black }}>+{Math.floor(TOTAL_AMOUNT * 0.05)} баллов</div>
-            <div style={{ fontSize: 11, color: C.black, opacity: 0.7, marginTop: 2 }}>Начислим после оплаты</div>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10, background: C.lime,
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            fontSize: 18
+          }}>✦</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: C.black, letterSpacing: "-0.1px" }}>
+              +{Math.floor(TOTAL_AMOUNT * 0.05)} баллов Туту
+            </div>
+            <div style={{ fontSize: 11, color: C.sub, marginTop: 2, lineHeight: 1.4 }}>
+              Начислим после оплаты — баллы привязаны к аккаунту Туту
+            </div>
           </div>
         </div>
-      )}
-      <div style={{
-        margin: "0 16px 14px", padding: "10px 14px", borderRadius: 12,
-        background: C.bgWarm, border: `1px solid ${C.border}`,
-        display: "flex", gap: 8, alignItems: "flex-start"
-      }}>
-        <span style={{ fontSize: 14 }}>⚠️</span>
-        <span style={{ fontSize: 12, color: C.text2, lineHeight: 1.5 }}>
-          Не передавайте QR третьим лицам — код даёт доступ к вашим баллам
-        </span>
       </div>
       <div style={{ padding: "0 16px" }}>
-        <PrimaryBtn label={scanned ? "Перейти к оплате →" : "Пропустить"} onClick={onNext} secondary={!scanned}/>
+        <PrimaryBtn label="Перейти к оплате" onClick={onNext}/>
       </div>
     </div>
   );
 }
+
+// Step2 (компонент QR-сканирования карты лояльности) удалён — у Tutu нет офлайн-канала
+
 
 const BNPL_PLANS = [
   { parts: 2, label: "2 части", per: "Сейчас и через 2 нед.", badge: "Без %" },
@@ -1233,7 +1139,7 @@ function Step3({ loyaltyScanned, hasYablo, onPay, onIssue }) {
 
   useEffect(() => { if (hasYablo) setMethod("yablo"); }, [hasYablo]);
 
-  const pointsVal = loyaltyScanned && usePoints ? 124 : 0;
+  const pointsVal = loyaltyScanned && usePoints ? 850 : 0;  // 1 балл Туту = 1 ₽
   const finalAmount = TOTAL_AMOUNT - pointsVal;
   const rev = REV_PLANS[revPlan];
   const revMonthly = Math.ceil(finalAmount / rev.months * (1 + rev.rate / 100));
@@ -1263,10 +1169,10 @@ function Step3({ loyaltyScanned, hasYablo, onPay, onIssue }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontSize: 14 }}>✦</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: C.black }}>Списать 1 240 баллов</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: C.black }}>Списать 850 баллов</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.black }}>–124 ₽</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.black }}>–850 ₽</span>
               <div onClick={() => setUsePoints(!usePoints)} style={{
                 width: 36, height: 22, borderRadius: 11, cursor: "pointer",
                 background: usePoints ? C.black : "rgba(0,0,0,0.2)", position: "relative", transition: "background .2s"
@@ -1428,19 +1334,17 @@ function Step3({ loyaltyScanned, hasYablo, onPay, onIssue }) {
 }
 
 function App() {
-  const [mode, setMode] = useState("offline");
   const [step, setStep] = useState(0);
-  const [loyaltyScanned, setLoyaltyScanned] = useState(false);
   const [success, setSuccess] = useState(null);
   const [clientType, setClientType] = useState("has_yablo");
   const [issuanceOpen, setIssuanceOpen] = useState(false);
 
-  const reset = () => { setSuccess(null); setStep(0); setLoyaltyScanned(false); };
+  const reset = () => { setSuccess(null); setStep(0); };
   const hasYablo = clientType === "has_yablo";
 
   if (success) return <SuccessScreen amount={success.amount} bonuses={success.bonuses} method={success.method} onReset={reset}/>;
 
-  const stepTitles = ["Корзина", "Карта Туту", "Оплата"];
+  const stepTitles = ["Корзина", "Оплата"];
   const segments = [
     { k: "has_yablo", l: "С Туту Кошельком" },
     { k: "n2b",       l: "N2B" },
@@ -1493,31 +1397,14 @@ function App() {
         <div style={{ display: "flex", alignItems: "center", padding: "10px 16px 10px", gap: 12 }}>
           <button onClick={() => step > 0 ? setStep(step - 1) : null} style={{
             width: 36, height: 36, borderRadius: "50%", border: `1px solid ${C.border}`,
-            background: C.card, cursor: "pointer", fontSize: 16,
+            background: C.card, cursor: step > 0 ? "pointer" : "default", fontSize: 16,
             display: "flex", alignItems: "center", justifyContent: "center",
-            color: C.black
+            color: step > 0 ? C.black : C.subLight, opacity: step > 0 ? 1 : 0.5
           }}>←</button>
           <div style={{ flex: 1, fontSize: 17, fontWeight: 800, color: C.black, letterSpacing: "-0.4px" }}>
-            {mode === "online" ? "Оплата" : stepTitles[step]}
+            {stepTitles[step]}
           </div>
           <GoldappleLogo size={28}/>
-        </div>
-
-        <div style={{ padding: "0 16px 12px" }}>
-          <div style={{
-            display: "flex", gap: 4, background: C.card, borderRadius: 100, padding: 4,
-            border: `1px solid ${C.border}`
-          }}>
-            {[{ k: "online", l: "🌐 Сайт" }, { k: "offline", l: "🎫 Касса" }].map(m => (
-              <button key={m.k} onClick={() => { setMode(m.k); setStep(0); }} style={{
-                flex: 1, padding: "9px 0", borderRadius: 100, border: "none",
-                background: mode === m.k ? C.black : "transparent",
-                color: mode === m.k ? C.white : C.sub,
-                fontSize: 13, fontWeight: 700, cursor: "pointer",
-                transition: "all .2s", fontFamily: "inherit"
-              }}>{m.l}</button>
-            ))}
-          </div>
         </div>
 
         <div style={{
@@ -1538,28 +1425,18 @@ function App() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: C.black, letterSpacing: "-0.2px" }}>Туту</div>
               <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>
-                {mode === "offline" ? "Касса Туту · Ленинградский вокзал, м.7" : "Сайт Туту · заказ #TT-38219"}
+                Сайт Туту · заказ #TT-38219
               </div>
             </div>
             <div style={{ fontSize: 20, fontWeight: 800, color: C.black, letterSpacing: "-0.3px" }}>{TOTAL_AMOUNT.toFixed(0)} ₽</div>
           </div>
 
-          {mode === "offline" && (
-            <div style={{ padding: "16px 16px 4px" }}>
-              <StepBar step={step}/>
-            </div>
-          )}
+          <div style={{ padding: "16px 16px 4px" }}>
+            <StepBar step={step}/>
+          </div>
 
-          {mode === "offline" && step === 0 && <Step1 onNext={() => setStep(1)}/>}
-          {mode === "offline" && step === 1 && (
-            <Step2 onNext={() => { setLoyaltyScanned(true); setStep(2); }}/>
-          )}
-          {mode === "offline" && step === 2 && (
-            <Step3 loyaltyScanned={loyaltyScanned} hasYablo={hasYablo}
-              onPay={(a, b, m) => setSuccess({ amount: a, bonuses: b, method: m })}
-              onIssue={() => setIssuanceOpen(true)}/>
-          )}
-          {mode === "online" && (
+          {step === 0 && <Step1 onNext={() => setStep(1)}/>}
+          {step === 1 && (
             <Step3 loyaltyScanned={true} hasYablo={hasYablo}
               onPay={(a, b, m) => setSuccess({ amount: a, bonuses: b, method: m })}
               onIssue={() => setIssuanceOpen(true)}/>
