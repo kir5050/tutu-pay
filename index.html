@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Туту Кошелёк — Чек-аут Туту с Альфа-Банком</title>
+<meta name="description" content="Интерактивный прототип чек-аута Туту Кошелька: оплата билетов и отелей, БНПЛ, кредитный лимит и оформление кошелька через Альфа-Банк">
+<meta property="og:title" content="Туту Кошелёк — Чек-аут Туту">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230E1235'/><text x='5' y='22' fill='white' font-size='15' font-weight='800' font-family='Manrope,Arial' letter-spacing='-1'>tu</text><text x='17' y='22' fill='%237D71FF' font-size='15' font-weight='800' font-style='italic' font-family='Manrope,Arial' letter-spacing='-1'>tu</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#F4F5FA;color:#0E1235;-webkit-tap-highlight-color:transparent}
+body{font-family:'Manrope','SF Pro Text','Segoe UI',-apple-system,sans-serif;-webkit-font-smoothing:antialiased;font-feature-settings:"ss01"}
+button{font-family:inherit;border:none;background:none;color:inherit;cursor:pointer}
+button:focus{outline:none}
+input{font-family:inherit}
+input:focus{outline:none}
+::selection{background:#A7E8DC;color:#0E1235}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:#C7CADC;border-radius:3px}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.logo-tu{display:inline-flex;align-items:baseline;font-weight:800;letter-spacing:-.04em;line-height:1}
+.logo-tu .static{color:#0E1235}
+.logo-tu .italic{color:#6B58FC;font-style:italic;margin-left:-.02em}
+.logo-tu.inv .static{color:#fff}
+.logo-tu.inv .italic{color:#7D71FF}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const C = {
+  // Brand: Туту — реальная палитра с сайта tutu.ru (индиго + travel-teal)
+  // `lime*` имена сохранены для совместимости с существующими ссылками в коде,
+  // но цвета — Tutu teal (светлый бирюзово-мятный — высокий контраст с миднайт-текстом)
+  lime:      "#A7E8DC",   // ⭐ primary accent FILL (светлый Tutu-тил — читается миднайт на нём)
+  limeDark:  "#1A7D71",   // ⭐ deep Tutu teal (для border/hover/active)
+  limeSoft:  "#D9F5EE",   // мятный soft (для подсветок)
+  limeLight: "#ECFFFA",   // очень светлый mint (для строк, gradient)
+  // Cyan/Indigo accents — для логотипа и текстовых акцентов
+  cyan:      "#22D3EE",   // декоративный бирюзовый (на тёмных фонах в SVG)
+  indigo:    "#6B58FC",   // ⭐ ТОЧНЫЙ Tutu indigo (light-mode) — для текста-акцента, иконок
+  indigoLite:"#7D71FF",   // Tutu indigo dark-mode — для курсивной «tu» на тёмных фонах
+  // Mono → midnight blue (вместо чистого чёрного)
+  black:     "#0E1235",
+  white:     "#FFFFFF",
+  // Bg — холодный off-white
+  bg:        "#F4F5FA",
+  bgWarm:    "#FAFBFE",
+  card:      "#FFFFFF",
+  text:      "#0E1235",
+  text2:     "#2D3155",
+  sub:       "#7D82A0",   // ⭐ ТОЧНЫЙ Tutu sub
+  subLight:  "#A8ACBE",
+  border:    "#E4E6F0",
+  borderLight:"#EEF0F7",
+  // Util
+  alfaRed:   "#EF3124",
+  green:     "#00A650",
+  greenBg:   "#E6F7EE",
+};
+
+function AppleIcon({ size = 24, color = "#0E1235" }) {
+  // Стилизованный знак Туту «tu·tu» — статичная + курсивная части (концепт бренд-бюро Щука).
+  // Логика контраста: на светлом фоне — миднайт + индиго, на тёмном (color=white) — белая + светлый индиго.
+  const isOnDark = color === "#FFFFFF" || color === "#fff" || color === "white";
+  const italicColor = isOnDark ? "#7D71FF" : "#6B58FC";
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" style={{ display: "block" }}>
+      <text x="2"  y="22" fill={color}        fontSize="16" fontWeight="800" fontFamily="Manrope, sans-serif" letterSpacing="-1">tu</text>
+      <text x="15" y="22" fill={italicColor}  fontSize="16" fontWeight="800" fontStyle="italic" fontFamily="Manrope, sans-serif" letterSpacing="-1">tu</text>
+    </svg>
+  );
+}
+
+function GoldappleLogo({ size = 30 }) {
+  // Лого Туту: «tu·tu» — статичная (миднайт) + курсивная (индиго). Концепт: «вы дома + вы в пути»
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
+      <span style={{
+        fontSize: size * 0.78, fontWeight: 800, color: C.black,
+        letterSpacing: "-0.04em", lineHeight: 1, fontFamily: "'Manrope', sans-serif"
+      }}>
+        tu<span style={{ color: C.lime, fontStyle: "italic" }}>tu</span>
+      </span>
+      <span style={{
+        fontSize: 9, fontWeight: 700, color: C.sub,
+        letterSpacing: "0.15em", textTransform: "uppercase"
+      }}>сервис<br/>путешествий</span>
+    </div>
+  );
+}
+
+function YabloPayCardSvg({ width = 200 }) {
+  const h = Math.round(width * 0.6);
+  return (
+    <svg width={width} height={h} viewBox="0 0 200 120" style={{ borderRadius: 12, display: "block" }}>
+      <defs>
+        <linearGradient id="tutuCardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#0E1235"/>
+          <stop offset="60%" stopColor="#1B2059"/>
+          <stop offset="100%" stopColor="#6B58FC"/>
+        </linearGradient>
+      </defs>
+      <rect width="200" height="120" rx="12" fill="url(#tutuCardGrad)"/>
+      {/* Decorative travel-arc */}
+      <ellipse cx="180" cy="-10" rx="65" ry="40" fill="#22D3EE" opacity="0.12"/>
+      <circle cx="22" cy="115" r="35" fill="#7C72F3" opacity="0.18"/>
+      {/* Dotted route hint */}
+      <path d="M 8 60 Q 60 30 100 50 T 192 25" stroke="#22D3EE" strokeWidth="0.8" strokeDasharray="1.5 3" fill="none" opacity="0.5"/>
+      {/* Chip */}
+      <rect x="14" y="42" width="28" height="22" rx="4" fill="#FFD66E"/>
+      <line x1="14" y1="53" x2="42" y2="53" stroke="#0E1235" strokeWidth="0.7" opacity="0.5"/>
+      <line x1="28" y1="42" x2="28" y2="64" stroke="#0E1235" strokeWidth="0.7" opacity="0.5"/>
+      {/* tu·tu mark */}
+      <text x="48" y="60" fill="#fff" fontSize="18" fontWeight="800" fontFamily="Manrope, sans-serif" letterSpacing="-0.5">tu</text>
+      <text x="68" y="60" fill="#7D71FF" fontSize="18" fontWeight="800" fontStyle="italic" fontFamily="Manrope, sans-serif" letterSpacing="-0.5">tu</text>
+      {/* Wordmark */}
+      <text x="14" y="86" fill="#fff" fontSize="13" fontWeight="800" fontFamily="Manrope, sans-serif" letterSpacing="-0.2">КОШЕЛЁК</text>
+      <text x="14" y="100" fill="#fff" fontSize="8" fontWeight="700" fontFamily="Manrope, sans-serif" letterSpacing="2" opacity="0.65">TRAVEL · ALFA</text>
+      {/* Card number */}
+      <text x="14" y="113" fill="#fff" fontSize="10" fontFamily="monospace" fontWeight="700" letterSpacing="1.5" opacity="0.75">*4209</text>
+      {/* MIR badge */}
+      <rect x="146" y="14" width="40" height="20" rx="4" fill="#fff"/>
+      <text x="166" y="28" fill="#0E1235" fontSize="10" fontWeight="800" textAnchor="middle" fontFamily="Manrope, sans-serif">МИР</text>
+      <text x="146" y="113" fill="#fff" fontSize="9" fontFamily="monospace" fontWeight="700" opacity="0.6">11/29</text>
+    </svg>
+  );
+}
+
+function AlfaCardSvg({ width = 60, last = "1234" }) {
+  const h = Math.round(width * 0.6);
+  return (
+    <svg width={width} height={h} viewBox="0 0 200 120" style={{ borderRadius: 8, display: "block" }}>
+      <rect width="200" height="120" rx="8" fill="#0A0A0A"/>
+      <rect x="148" y="14" width="38" height="22" rx="4" fill={C.alfaRed}/>
+      <text x="167" y="29" fill="white" fontSize="12" fontWeight="800" textAnchor="middle">A</text>
+      <text x="14" y="108" fill="rgba(255,255,255,0.85)" fontSize="11" fontFamily="monospace" letterSpacing="2">*{last}</text>
+    </svg>
+  );
+}
+
+function SbpLogo({ size = 32 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "block" }}>
+      <defs>
+        <linearGradient id="sbpg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#1FB6FF"/>
+          <stop offset="50%" stopColor="#3D8EE6"/>
+          <stop offset="100%" stopColor="#7C5FE6"/>
+        </linearGradient>
+      </defs>
+      <circle cx="50" cy="50" r="48" fill="url(#sbpg)"/>
+      <text x="50" y="60" fill="#fff" fontWeight="800" fontSize="22" textAnchor="middle" fontFamily="Manrope, sans-serif" letterSpacing="0.5">СБП</text>
+    </svg>
+  );
+}
+
+function QrCodeSvg({ size = 160, highlight }) {
+  const cells = [
+    [1,1,1,1,1,1,1,0,0,1,1,0,1,0,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,1,0,1,0,0,1,0,0,1,0,0,0,0,0,1],
+    [1,0,1,1,1,0,1,0,0,1,1,0,0,0,1,0,1,1,1,0,1],
+    [1,0,1,1,1,0,1,0,1,1,0,0,1,0,1,0,1,1,1,0,1],
+    [1,0,1,1,1,0,1,0,0,0,1,1,0,0,1,0,1,1,1,0,1],
+    [1,0,0,0,0,0,1,0,1,0,0,1,1,0,1,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1],
+    [0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0],
+    [0,1,1,0,1,1,1,0,1,0,0,1,1,1,1,0,1,0,1,1,0],
+    [1,0,0,1,0,0,0,1,0,1,1,0,0,0,0,1,0,1,0,0,1],
+    [0,1,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1],
+    [1,0,0,1,0,1,0,1,0,1,0,0,0,1,0,1,0,0,1,1,0],
+    [1,1,0,0,1,0,1,0,1,0,1,1,0,0,1,1,1,0,1,0,1],
+    [0,0,1,0,0,1,0,1,0,1,1,0,1,0,0,1,0,1,0,0,0],
+    [1,1,1,1,1,1,1,0,1,0,0,1,1,0,1,0,1,0,0,1,0],
+    [1,0,0,0,0,0,1,0,0,1,1,0,0,1,0,1,1,0,1,0,1],
+    [1,0,1,1,1,0,1,1,0,0,1,1,0,0,1,0,0,1,0,1,1],
+    [1,0,1,1,1,0,1,0,1,1,0,0,1,1,0,1,1,0,1,1,0],
+    [1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,0,1,1,0,0,1],
+    [1,0,0,0,0,0,1,1,1,0,0,1,0,1,0,1,1,0,1,0,0],
+    [1,1,1,1,1,1,1,0,0,1,1,0,1,0,1,0,0,1,1,1,0],
+  ];
+  const n = cells.length;
+  const cell = size / n;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <rect width={size} height={size} fill="white" rx="10"/>
+      {highlight && <rect width={size} height={size} rx="10" fill={C.limeLight}/>}
+      {cells.map((row, r) => row.map((v, c) =>
+        v ? <rect key={`${r}-${c}`} x={c*cell} y={r*cell} width={cell} height={cell} fill={C.black}/> : null
+      ))}
+      {highlight && (
+        <>
+          <rect width={size} height={size} rx="10" fill="none" stroke={C.lime} strokeWidth="3"/>
+          <circle cx={size/2} cy={size/2} r="22" fill={C.lime}/>
+          <g transform={`translate(${size/2 - 11}, ${size/2 - 12}) scale(0.7)`}>
+            <path d="M16 8 L17.5 5 L19.5 6" stroke={C.black} strokeWidth="2" fill="none" strokeLinecap="round"/>
+            <path d="M16 10 C11 10 8 13.5 8 19 C8 24 12 28 16 28 C20 28 24 24 24 19 C24 13.5 21 10 16 10 Z" fill={C.black}/>
+          </g>
+        </>
+      )}
+    </svg>
+  );
+}
+
+function CheckIcon({ size = 16, color = "#fff" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M5 12l5 5 9-9" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+function ChevronRight({ size = 16, color = C.sub }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M9 6l6 6-6 6" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function InfoIcon({ size = 14, color = C.sub }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.5"/>
+      <path d="M12 8v1M12 12v4" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+const Divider = ({ mx = 0 }) => <div style={{ height: 1, background: C.border, margin: `0 ${mx}px` }}/>;
+
+function PrimaryBtn({ label, onClick, loading, secondary, disabled }) {
+  return (
+    <button onClick={onClick} disabled={loading || disabled} style={{
+      width: "100%", padding: "16px 20px", border: "none",
+      cursor: disabled ? "default" : "pointer", borderRadius: 100,
+      background: disabled ? "#E5E5E5" : secondary ? C.white : loading ? "#3D3D3D" : C.black,
+      color: disabled ? C.sub : secondary ? C.black : C.white,
+      fontSize: 14, fontWeight: 600,
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+      transition: "all .18s", fontFamily: "inherit",
+      letterSpacing: "-0.1px",
+      boxShadow: secondary ? `inset 0 0 0 1.5px ${C.black}` : "none"
+    }}>
+      {loading ? "Обработка…" : label}
+    </button>
+  );
+}
+
+function LimeBtn({ label, onClick, disabled }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      width: "100%", padding: "16px 20px", border: "none",
+      cursor: disabled ? "default" : "pointer", borderRadius: 100,
+      background: disabled ? "#E5E5E5" : C.lime,
+      color: disabled ? C.sub : C.black,
+      fontSize: 14, fontWeight: 700,
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+      transition: "all .18s", fontFamily: "inherit"
+    }}>{label}</button>
+  );
+}
+
+function RadioRow({ selected, onClick, icon, title, sub, badge, badgeLime }) {
+  return (
+    <div onClick={onClick} style={{
+      display: "flex", alignItems: "center", gap: 13,
+      padding: "14px 16px", cursor: "pointer",
+      background: selected ? C.limeLight : C.card,
+      borderLeft: `3px solid ${selected ? C.lime : "transparent"}`,
+      transition: "all .15s"
+    }}>
+      <div style={{
+        width: 42, height: 42, borderRadius: 12,
+        background: selected ? C.lime : C.bgWarm,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 20, flexShrink: 0
+      }}>{icon}</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: C.black }}>{title}</div>
+        {sub && <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>{sub}</div>}
+      </div>
+      {badge && (
+        <span style={{
+          fontSize: 11, fontWeight: 700, padding: "4px 9px", borderRadius: 100,
+          background: badgeLime ? C.lime : C.greenBg,
+          color: badgeLime ? C.black : C.green
+        }}>{badge}</span>
+      )}
+      <div style={{
+        width: 22, height: 22, borderRadius: "50%",
+        border: `2px solid ${selected ? C.black : "#CCC"}`,
+        background: selected ? C.black : "transparent",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0, transition: "all .15s"
+      }}>
+        {selected && <CheckIcon size={11}/>}
+      </div>
+    </div>
+  );
+}
+
+function StepBar({ step }) {
+  const steps = ["Корзина", "Карта Туту", "Оплата"];
+  return (
+    <div style={{ display: "flex", alignItems: "center", padding: "0 16px", marginBottom: 16 }}>
+      {steps.map((s, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", flex: i < steps.length - 1 ? 1 : 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: "50%",
+              background: i < step ? C.black : i === step ? C.lime : C.bgWarm,
+              border: i > step ? `1.5px solid ${C.border}` : "none",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: i < step ? C.white : C.black,
+              fontSize: 12, fontWeight: 700, transition: "all .3s"
+            }}>{i < step ? <CheckIcon size={13}/> : i + 1}</div>
+            <div style={{
+              fontSize: 10, color: i === step ? C.black : C.sub, fontWeight: i === step ? 700 : 500,
+              whiteSpace: "nowrap"
+            }}>{s}</div>
+          </div>
+          {i < steps.length - 1 && (
+            <div style={{
+              flex: 1, height: 2, background: i < step ? C.black : C.border,
+              marginBottom: 16, marginLeft: 6, marginRight: 6, transition: "all .3s"
+            }}/>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SuccessScreen({ amount, bonuses, method, onReset }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 100, background: C.white,
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      animation: "fadeIn .35s ease"
+    }}>
+      <style>{`@keyframes pop{0%{transform:scale(.4);opacity:0}65%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}@keyframes fadeIn{from{opacity:0}to{opacity:1}}`}</style>
+      <div style={{
+        width: 100, height: 100, borderRadius: "50%", background: C.lime,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        animation: "pop .5s ease .08s both", marginBottom: 24
+      }}>
+        <CheckIcon size={48} color={C.black}/>
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: C.black, marginBottom: 6, letterSpacing: "-0.6px" }}>Оплачено!</div>
+      <div style={{ fontSize: 24, fontWeight: 800, color: C.black, marginBottom: 6 }}>{amount.toFixed(0)} ₽</div>
+      <div style={{ fontSize: 13, color: C.sub, marginBottom: 24 }}>{method}</div>
+      {bonuses > 0 && (
+        <div style={{
+          padding: "11px 22px", borderRadius: 100, background: C.lime,
+          display: "flex", alignItems: "center", gap: 8
+        }}>
+          <AppleIcon size={18} color={C.black}/>
+          <span style={{ fontSize: 14, fontWeight: 800, color: C.black }}>+{bonuses} баллов</span>
+        </div>
+      )}
+      <button onClick={onReset} style={{
+        marginTop: 32, padding: "13px 32px", borderRadius: 100,
+        background: "transparent", border: `1.5px solid ${C.black}`, color: C.black,
+        fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit"
+      }}>← Вернуться</button>
+    </div>
+  );
+}
+
+const FLOWS = {
+  n2b:      { route: ["consents", "phone", "otp", "form", "issued", "topup", "slot", "delivered"], label: "N2B" },
+  existing: { route: ["consents", "phone", "otp", "select"],                                       label: "Действующий" },
+};
+
+function IssueHeader({ onClose, label }) {
+  return (
+    <div style={{
+      padding: "14px 16px 12px", borderBottom: `1px solid ${C.border}`,
+      background: C.white, display: "flex", alignItems: "center", gap: 10,
+      flexShrink: 0
+    }}>
+      <button onClick={onClose} style={{
+        width: 32, height: 32, borderRadius: "50%", border: `1px solid ${C.border}`,
+        background: C.white, cursor: "pointer", fontSize: 14, fontFamily: "inherit",
+        color: C.black, fontWeight: 600
+      }}>✕</button>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: C.black, letterSpacing: "-0.2px" }}>Оформление Туту Кошелька</div>
+        <div style={{ fontSize: 11, color: C.sub, display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+          <span style={{
+            width: 14, height: 14, borderRadius: 3, background: C.alfaRed,
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            fontSize: 9, fontWeight: 800, color: C.white
+          }}>A</span>
+          🔒 Защищено · обслуживает Альфа-Банк
+        </div>
+      </div>
+      <span style={{
+        fontSize: 10, fontWeight: 800, padding: "4px 10px", borderRadius: 100,
+        background: C.lime, color: C.black, letterSpacing: "0.2px"
+      }}>{label}</span>
+    </div>
+  );
+}
+
+function IssueProgress({ idx, total }) {
+  return (
+    <div style={{ display: "flex", gap: 4, padding: "10px 16px 4px", flexShrink: 0 }}>
+      {Array.from({ length: total }).map((_, i) => (
+        <div key={i} style={{
+          flex: 1, height: 3, borderRadius: 2,
+          background: i <= idx ? C.lime : C.border, transition: "background .3s"
+        }}/>
+      ))}
+    </div>
+  );
+}
+
+function ConsentsScreen({ onNext, clientType }) {
+  return (
+    <div style={{ padding: "22px 16px" }}>
+      <div style={{
+        width: 68, height: 68, borderRadius: "50%", marginBottom: 16,
+        background: C.lime, display: "flex", alignItems: "center", justifyContent: "center"
+      }}>
+        <AppleIcon size={36} color={C.black}/>
+      </div>
+      <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.1, marginBottom: 10, color: C.black, letterSpacing: "-0.6px" }}>Откройте<br/>Туту Кошелёк</div>
+      <div style={{ fontSize: 14, color: C.sub, marginBottom: 18, lineHeight: 1.5 }}>
+        {clientType === "existing"
+          ? "Привяжите карту Альфа-Банка и оплачивайте покупки в Золотом Яблоке кошельком"
+          : "Моментально выпустим бесплатную карту для кошелька и привяжем к способу оплаты"}
+      </div>
+      {[
+        { i: "✦", t: "+200 баллов welcome на первую поездку" },
+        { i: "🎁", t: "Бесплатное обслуживание навсегда" },
+        { i: "✨", t: "Возвращаем баллами с каждой поездки" },
+        { i: "⚡", t: clientType === "existing" ? "Привязка за 20 секунд" : "Без визита в отделение" },
+      ].map((b, i) => (
+        <div key={i} style={{
+          display: "flex", gap: 14, alignItems: "center",
+          padding: "13px 16px", marginBottom: 8,
+          background: C.bgWarm, borderRadius: 14
+        }}>
+          <span style={{ fontSize: 18 }}>{b.i}</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color: C.black }}>{b.t}</span>
+        </div>
+      ))}
+      <div style={{ marginTop: 6 }}>
+        <PrimaryBtn label="Продолжить" onClick={onNext}/>
+      </div>
+      <div style={{ fontSize: 10, color: C.sub, marginTop: 14, lineHeight: 1.5 }}>
+        Нажимая «Продолжить», вы соглашаетесь с Памяткой ЭДС, СОПД и условиями. Эмитент карты — АО «Альфа-Банк».
+      </div>
+    </div>
+  );
+}
+
+function PhoneScreen({ onNext }) {
+  const [phone, setPhone] = useState("+7 (999) 123-45-67");
+  return (
+    <div style={{ padding: "22px 16px" }}>
+      <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: C.black, letterSpacing: "-0.5px" }}>Введите номер телефона</div>
+      <div style={{ fontSize: 13, color: C.sub, marginBottom: 24 }}>Мы отправим код подтверждения</div>
+      <div style={{
+        padding: "12px 16px", borderRadius: 14, background: C.white,
+        border: `2px solid ${C.black}`, marginBottom: 8
+      }}>
+        <div style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>Номер телефона</div>
+        <input value={phone} onChange={e => setPhone(e.target.value)} style={{
+          width: "100%", border: "none", background: "transparent",
+          fontSize: 18, fontWeight: 700, color: C.black, marginTop: 3,
+          outline: "none", fontFamily: "inherit"
+        }}/>
+      </div>
+      <div style={{ fontSize: 11, color: C.sub, marginBottom: 20, display: "flex", gap: 5, alignItems: "center" }}>
+        <InfoIcon size={12}/> Используется для подтверждения и связи
+      </div>
+      <PrimaryBtn label="Получить код" onClick={onNext}/>
+    </div>
+  );
+}
+
+function OtpScreen({ onNext }) {
+  const [code, setCode] = useState("");
+  const [timer, setTimer] = useState(25);
+
+  useEffect(() => {
+    if (timer > 0) {
+      const t = setTimeout(() => setTimer(timer - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [timer]);
+
+  useEffect(() => {
+    if (code.length < 4) {
+      const t = setTimeout(() => setCode(code + ((code.length + 4) % 10)), 350);
+      return () => clearTimeout(t);
+    } else {
+      const t = setTimeout(onNext, 600);
+      return () => clearTimeout(t);
+    }
+  }, [code]);
+
+  return (
+    <div style={{ padding: "22px 16px", textAlign: "center" }}>
+      <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: C.black, letterSpacing: "-0.5px" }}>Введите код из СМС</div>
+      <div style={{ fontSize: 13, color: C.sub, marginBottom: 28 }}>Код отправлен на +7 999 123-45-67</div>
+      <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 22 }}>
+        {[0,1,2,3].map(i => (
+          <div key={i} style={{
+            width: 56, height: 64, borderRadius: 14,
+            background: code.length > i ? C.lime : C.white,
+            border: `2px solid ${code.length === i ? C.black : code.length > i ? C.lime : C.border}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 28, fontWeight: 800, color: C.black, transition: "all .15s"
+          }}>
+            {code[i] || (code.length === i ? <span style={{ opacity: 0.4, animation: "blink 1s infinite" }}>|</span> : "")}
+          </div>
+        ))}
+      </div>
+      <style>{`@keyframes blink{0%,50%{opacity:.4}51%,100%{opacity:0}}`}</style>
+      <div style={{ fontSize: 12, color: timer > 0 ? C.sub : C.black, fontWeight: 600 }}>
+        {timer > 0 ? `Повторно через 0:${timer.toString().padStart(2, "0")}` : "Отправить код повторно"}
+      </div>
+    </div>
+  );
+}
+
+function FormScreen({ onNext }) {
+  const fields = [
+    { l: "Фамилия",       v: "Иванова",     note: "из Туту" },
+    { l: "Имя",           v: "Анна",        note: "из Туту" },
+    { l: "Отчество",      v: "Сергеевна" },
+    { l: "Дата рождения", v: "15.03.1992" },
+  ];
+  return (
+    <div style={{ padding: "22px 16px" }}>
+      <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: C.black, letterSpacing: "-0.5px" }}>Заполните заявку</div>
+      <div style={{ fontSize: 12, color: C.sub, marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontWeight: 600 }}>Шаг 1 из 2</span>
+        <div style={{ flex: 1, height: 3, background: C.border, borderRadius: 2 }}>
+          <div style={{ width: "50%", height: "100%", background: C.lime, borderRadius: 2 }}/>
+        </div>
+      </div>
+      {fields.map((f, i) => (
+        <div key={i} style={{
+          padding: "11px 16px", marginBottom: 8, background: C.white,
+          border: `1px solid ${C.border}`, borderRadius: 14, position: "relative"
+        }}>
+          <div style={{ fontSize: 10, color: C.sub, fontWeight: 600 }}>{f.l}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, color: C.black }}>{f.v}</div>
+          {f.note && (
+            <span style={{
+              position: "absolute", top: 10, right: 12,
+              fontSize: 9, fontWeight: 800, color: C.black,
+              background: C.lime, padding: "3px 8px", borderRadius: 100
+            }}>✓ {f.note}</span>
+          )}
+        </div>
+      ))}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        padding: "11px 16px", marginBottom: 16,
+        background: C.white, border: `1px solid ${C.border}`, borderRadius: 14
+      }}>
+        <span style={{ fontSize: 12, color: C.sub }}>Гражданин РФ</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.black, display: "flex", alignItems: "center", gap: 5 }}>
+          Да <CheckIcon size={12} color={C.black}/>
+        </span>
+      </div>
+      <PrimaryBtn label="Продолжить" onClick={onNext}/>
+    </div>
+  );
+}
+
+function IssuedScreen({ onNext }) {
+  return (
+    <div style={{ padding: "26px 16px", textAlign: "center" }}>
+      <div style={{
+        width: 76, height: 76, borderRadius: "50%", background: C.lime,
+        margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center",
+        animation: "pop .4s ease"
+      }}>
+        <CheckIcon size={36} color={C.black}/>
+      </div>
+      <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: C.black, letterSpacing: "-0.5px" }}>Кошелёк открыт!</div>
+      <div style={{ fontSize: 13, color: C.sub, marginBottom: 20, lineHeight: 1.5 }}>
+        Карта выпущена и привязана к Туту Кошелёк. Реквизиты переданы автоматически
+      </div>
+      <div style={{
+        padding: 16, background: C.bgWarm, borderRadius: 16, marginBottom: 12,
+        display: "flex", alignItems: "center", gap: 14
+      }}>
+        <YabloPayCardSvg width={96}/>
+        <div style={{ textAlign: "left" }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: C.black }}>Туту Кошелёк</div>
+          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>*4209 · МИР · 0 ₽</div>
+          <div style={{
+            fontSize: 10, fontWeight: 800, color: C.black, marginTop: 6,
+            display: "inline-block", padding: "3px 10px",
+            background: C.lime, borderRadius: 100
+          }}>✓ АКТИВНА</div>
+        </div>
+      </div>
+      <div style={{
+        padding: "12px 16px", borderRadius: 14, marginBottom: 18,
+        background: C.limeLight, border: `1px solid ${C.limeSoft}`,
+        display: "flex", gap: 8, alignItems: "flex-start", textAlign: "left"
+      }}>
+        <span style={{ fontSize: 16 }}>💡</span>
+        <span style={{ fontSize: 12, color: C.black, lineHeight: 1.5 }}>
+          Кошелёк выпущен с нулевым балансом. Пополните через СБП, чтобы оплатить заказ
+        </span>
+      </div>
+      <PrimaryBtn label="Пополнить и оплатить" onClick={onNext}/>
+    </div>
+  );
+}
+
+function SelectAlfaCardScreen({ onNext }) {
+  const [sel, setSel] = useState(0);
+  const cards = [
+    { last: "8421", name: "Альфа-Карта",          bal: "47 200 ₽", type: "Дебетовая · МИР" },
+    { last: "3309", name: "Альфа Только Польза",  bal: "12 100 ₽", type: "Кредитная · Visa" },
+    { last: "6017", name: "Альфа Премиум",        bal: "1 240 ₽",  type: "Дебетовая · МС" },
+  ];
+  return (
+    <div style={{ padding: "22px 16px" }}>
+      <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: C.black, letterSpacing: "-0.5px" }}>Выберите карту</div>
+      <div style={{ fontSize: 13, color: C.sub, marginBottom: 16 }}>Привяжем её к Туту Кошелёк для оплаты в Туту</div>
+      {cards.map((c, i) => (
+        <div key={i} onClick={() => setSel(i)} style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "11px 14px", marginBottom: 8, cursor: "pointer",
+          background: sel === i ? C.limeLight : C.white, borderRadius: 14,
+          border: `2px solid ${sel === i ? C.lime : C.border}`, transition: "all .15s"
+        }}>
+          <AlfaCardSvg width={58} last={c.last}/>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.black }}>{c.name}</div>
+            <div style={{ fontSize: 11, color: C.sub, marginTop: 2 }}>*{c.last} · {c.bal}</div>
+            <div style={{ fontSize: 10, color: C.subLight, marginTop: 1 }}>{c.type}</div>
+          </div>
+          <div style={{
+            width: 22, height: 22, borderRadius: "50%",
+            border: `2px solid ${sel === i ? C.black : "#CCC"}`,
+            background: sel === i ? C.black : "transparent",
+            display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            {sel === i && <CheckIcon size={11}/>}
+          </div>
+        </div>
+      ))}
+      <div style={{ marginTop: 14 }}>
+        <PrimaryBtn label="Привязать к Туту Кошелёк" onClick={onNext}/>
+      </div>
+    </div>
+  );
+}
+
+function TopupScreen({ onNext, onSkip }) {
+  const [bank, setBank] = useState(null);
+  const [stage, setStage] = useState("select");
+  const [amount, setAmount] = useState(5000);
+
+  const banks = [
+    { id: "sber",  name: "Сбербанк",    color: "#21A038", textColor: "#fff", letter: "С" },
+    { id: "tbank", name: "Т-Банк",      color: "#FFDD2D", textColor: "#000", letter: "Т" },
+    { id: "vtb",   name: "ВТБ",         color: "#0A2973", textColor: "#fff", letter: "В" },
+    { id: "raif",  name: "Райффайзен",  color: "#FEE600", textColor: "#000", letter: "R" },
+    { id: "other", name: "Другой банк", color: "#3D3D3D", textColor: "#fff", letter: "+" },
+  ];
+
+  const selectedBank = banks.find(b => b.id === bank);
+
+  const handleConfirm = () => {
+    if (!bank) return;
+    setStage("processing");
+    setTimeout(() => setStage("done"), 1500);
+  };
+
+  if (stage === "done") {
+    return (
+      <div style={{ padding: "30px 16px 24px", textAlign: "center" }}>
+        <div style={{
+          width: 80, height: 80, borderRadius: "50%", background: C.lime,
+          margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center",
+          animation: "pop .4s ease"
+        }}>
+          <CheckIcon size={38} color={C.black}/>
+        </div>
+        <div style={{ fontSize: 24, fontWeight: 800, color: C.black, marginBottom: 6, letterSpacing: "-0.5px" }}>Кошелёк пополнен!</div>
+        <div style={{ fontSize: 13, color: C.sub, marginBottom: 22 }}>
+          <span style={{ fontWeight: 700, color: C.black }}>{amount.toLocaleString("ru-RU")} ₽</span> зачислены на *4209
+        </div>
+
+        <div style={{
+          padding: "14px 16px", borderRadius: 14, background: C.bgWarm,
+          textAlign: "left", marginBottom: 12,
+          display: "flex", gap: 12, alignItems: "center"
+        }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12, background: C.lime,
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+          }}>💳</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: C.black }}>Закажите пластик</div>
+            <div style={{ fontSize: 11, color: C.sub, marginTop: 2, lineHeight: 1.4 }}>
+              Бесплатная доставка курьером
+            </div>
+          </div>
+        </div>
+
+        <PrimaryBtn label="Заказать пластиковую карту" onClick={onNext}/>
+        <button onClick={onSkip} style={{
+          width: "100%", padding: "12px 0", marginTop: 8,
+          background: "transparent", border: "none",
+          color: C.sub, fontSize: 13, fontWeight: 600,
+          cursor: "pointer", fontFamily: "inherit"
+        }}>Пропустить → перейти к оплате</button>
+      </div>
+    );
+  }
+
+  if (stage === "processing") {
+    return (
+      <div style={{ padding: "36px 16px", textAlign: "center" }}>
+        <div style={{ position: "relative", width: 84, height: 84, margin: "0 auto 18px" }}>
+          <SbpLogo size={84}/>
+          <div style={{
+            position: "absolute", inset: -6,
+            border: `3px solid ${C.lime}`, borderRadius: "50%",
+            borderTopColor: "transparent",
+            animation: "spin 1s linear infinite"
+          }}/>
+        </div>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        <div style={{ fontSize: 20, fontWeight: 800, color: C.black, marginBottom: 8, letterSpacing: "-0.3px" }}>Подтверждение через СБП</div>
+        <div style={{ fontSize: 13, color: C.sub, lineHeight: 1.5 }}>
+          Открываем приложение<br/>
+          <span style={{ fontWeight: 700, color: C.black }}>«{selectedBank?.name}»</span>
+        </div>
+        <div style={{
+          marginTop: 18, padding: "8px 16px", borderRadius: 100,
+          background: C.bgWarm, fontSize: 11, color: C.black, fontWeight: 600,
+          display: "inline-block"
+        }}>Не закрывайте окно</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "22px 16px" }}>
+      <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 6, color: C.black, letterSpacing: "-0.5px" }}>Пополните кошелек</div>
+      <div style={{ fontSize: 13, color: C.sub, marginBottom: 16 }}>Перевод через СБП с карты другого банка</div>
+
+      <div style={{
+        padding: "12px 14px", borderRadius: 14, background: C.bgWarm,
+        display: "flex", alignItems: "center", gap: 12, marginBottom: 14
+      }}>
+        <YabloPayCardSvg width={58}/>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.black }}>Туту Кошелёк *4209</div>
+          <div style={{ fontSize: 11, color: C.sub, marginTop: 2 }}>Баланс: 0 ₽</div>
+        </div>
+      </div>
+
+      <div style={{
+        padding: "14px 16px", borderRadius: 14, marginBottom: 12,
+        background: C.white, border: `2px solid ${C.black}`
+      }}>
+        <div style={{ fontSize: 11, color: C.sub, fontWeight: 600, marginBottom: 4 }}>Сумма пополнения</div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+          <input
+            type="number"
+            value={amount}
+            onChange={e => setAmount(Math.max(100, Math.min(15000, parseInt(e.target.value) || 0)))}
+            style={{
+              flex: 1, border: "none", background: "transparent",
+              fontSize: 26, fontWeight: 800, color: C.black, outline: "none",
+              fontFamily: "inherit", minWidth: 0
+            }}
+          />
+          <span style={{ fontSize: 22, color: C.black, fontWeight: 800 }}>₽</span>
+        </div>
+        <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+          {[1000, 3000, 5000, 10000].map(s => (
+            <button key={s} onClick={() => setAmount(s)} style={{
+              flex: 1, padding: "8px 0", borderRadius: 100, border: "none",
+              background: amount === s ? C.black : C.bgWarm,
+              color: amount === s ? C.white : C.black,
+              fontSize: 12, fontWeight: 700, cursor: "pointer",
+              fontFamily: "inherit", transition: "all .15s"
+            }}>{s.toLocaleString("ru-RU")}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{
+        padding: "11px 14px", borderRadius: 14, marginBottom: 16,
+        background: "linear-gradient(135deg, rgba(31,182,255,0.07), rgba(124,95,230,0.10))",
+        border: "1px solid rgba(124,95,230,0.22)",
+        display: "flex", alignItems: "center", gap: 12
+      }}>
+        <SbpLogo size={36}/>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: C.black }}>Система Быстрых Платежей</div>
+          <div style={{ fontSize: 11, color: C.sub, marginTop: 1 }}>Без комиссии · до 15 000 ₽ за операцию · мгновенно</div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 8 }}>
+        Откуда перевести
+      </div>
+
+      {banks.map(b => (
+        <div key={b.id} onClick={() => setBank(b.id)} style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "11px 14px", marginBottom: 6, cursor: "pointer",
+          background: bank === b.id ? C.limeLight : C.white,
+          borderRadius: 14,
+          border: `2px solid ${bank === b.id ? C.lime : C.border}`,
+          transition: "all .15s"
+        }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: "50%", background: b.color,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: b.textColor, fontSize: 16, fontWeight: 800, flexShrink: 0
+          }}>{b.letter}</div>
+          <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: C.black }}>{b.name}</div>
+          <div style={{
+            width: 20, height: 20, borderRadius: "50%",
+            border: `2px solid ${bank === b.id ? C.black : "#CCC"}`,
+            background: bank === b.id ? C.black : "transparent",
+            display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            {bank === b.id && <CheckIcon size={10}/>}
+          </div>
+        </div>
+      ))}
+
+      <div style={{ marginTop: 14 }}>
+        <PrimaryBtn
+          label={bank ? `Перейти в «${selectedBank?.name}»` : "Выберите банк"}
+          onClick={handleConfirm}
+          disabled={!bank}
+        />
+      </div>
+
+      <div style={{ fontSize: 10, color: C.sub, marginTop: 12, textAlign: "center", lineHeight: 1.5 }}>
+        Для упрощённо идентифицированного клиента доступно только пополнение по СБП C2B (лимит 15 000 ₽ на операцию)
+      </div>
+    </div>
+  );
+}
+
+function SlotScreen({ onNext }) {
+  const [sel, setSel] = useState(1);
+  const slots = [
+    { id: 0, label: "Сегодня",     date: "11 мая",  time: "18:00 – 22:00" },
+    { id: 1, label: "Завтра",      date: "12 мая",  time: "09:00 – 13:00", badge: "Удобный" },
+    { id: 2, label: "Завтра",      date: "12 мая",  time: "14:00 – 18:00" },
+    { id: 3, label: "Завтра",      date: "12 мая",  time: "18:00 – 22:00" },
+    { id: 4, label: "Понедельник", date: "13 мая",  time: "09:00 – 13:00" },
+  ];
+
+  const selected = slots[sel];
+
+  return (
+    <div style={{ padding: "22px 16px" }}>
+      <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 6, color: C.black, letterSpacing: "-0.5px" }}>Выберите время</div>
+      <div style={{ fontSize: 13, color: C.sub, marginBottom: 14 }}>Доступные слоты курьерской доставки</div>
+
+      <div style={{
+        padding: "10px 14px", borderRadius: 12, background: C.bgWarm,
+        marginBottom: 14, display: "flex", gap: 8, alignItems: "center"
+      }}>
+        <span style={{ fontSize: 14 }}>📍</span>
+        <span style={{ fontSize: 12, color: C.text2, flex: 1 }}>Москва, Ленинградский пр., 35, кв. 12</span>
+      </div>
+
+      {slots.map(s => (
+        <div key={s.id} onClick={() => setSel(s.id)} style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "11px 14px", marginBottom: 6, cursor: "pointer",
+          background: sel === s.id ? C.limeLight : C.white,
+          borderRadius: 14,
+          border: `2px solid ${sel === s.id ? C.lime : C.border}`,
+          transition: "all .15s"
+        }}>
+          <div style={{
+            width: 56, height: 50, borderRadius: 10,
+            background: sel === s.id ? C.lime : C.bgWarm,
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            flexShrink: 0
+          }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: C.black }}>{s.label.length > 8 ? s.label.slice(0,7)+"…" : s.label}</div>
+            <div style={{ fontSize: 9, marginTop: 1, fontWeight: 600, color: C.sub }}>{s.date}</div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{s.time}</div>
+            <div style={{ fontSize: 11, color: C.sub, marginTop: 1 }}>Курьером, окно 4 часа</div>
+          </div>
+          {s.badge && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 100,
+              background: C.lime, color: C.black, marginRight: 6
+            }}>{s.badge}</span>
+          )}
+          <div style={{
+            width: 20, height: 20, borderRadius: "50%",
+            border: `2px solid ${sel === s.id ? C.black : "#CCC"}`,
+            background: sel === s.id ? C.black : "transparent",
+            display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            {sel === s.id && <CheckIcon size={10}/>}
+          </div>
+        </div>
+      ))}
+
+      <div style={{ marginTop: 14 }}>
+        <PrimaryBtn label={`Заказать на ${selected.label.toLowerCase()}, ${selected.time.split(" ")[0]}`} onClick={onNext}/>
+      </div>
+
+      <div style={{ fontSize: 10, color: C.sub, marginTop: 10, textAlign: "center" }}>
+        Слоты могут измениться в зависимости от загрузки курьеров
+      </div>
+    </div>
+  );
+}
+
+function DeliveredScreen({ onNext }) {
+  return (
+    <div style={{ padding: "30px 16px 20px", textAlign: "center" }}>
+      <div style={{
+        width: 84, height: 84, borderRadius: "50%", background: C.lime,
+        margin: "0 auto 18px", display: "flex", alignItems: "center", justifyContent: "center",
+        animation: "pop .4s ease"
+      }}>
+        <CheckIcon size={40} color={C.black}/>
+      </div>
+      <div style={{ fontSize: 24, fontWeight: 800, color: C.black, marginBottom: 6, letterSpacing: "-0.5px" }}>Карта заказана!</div>
+      <div style={{ fontSize: 13, color: C.sub, marginBottom: 18 }}>Пластиковая Туту Кошелёк приедет с курьером</div>
+
+      <div style={{
+        padding: 16, borderRadius: 16, background: C.bgWarm,
+        marginBottom: 12, textAlign: "left"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+          <YabloPayCardSvg width={92}/>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: C.black }}>Туту Кошелёк</div>
+            <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>*4209 · Пластик</div>
+            <div style={{
+              fontSize: 10, fontWeight: 800, color: C.black, marginTop: 6,
+              display: "inline-block", padding: "3px 9px",
+              background: C.lime, borderRadius: 100
+            }}>📦 В ОБРАБОТКЕ</div>
+          </div>
+        </div>
+
+        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+          {[
+            { l: "📍 Адрес",     v: "Ленинградский пр., 35" },
+            { l: "🕐 Доставка",  v: "Завтра, 09:00 – 13:00" },
+            { l: "🆔 Документы", v: "Паспорт" },
+          ].map((r, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", fontSize: 12, gap: 12 }}>
+              <span style={{ color: C.sub, fontWeight: 500, flexShrink: 0 }}>{r.l}</span>
+              <span style={{ color: C.black, fontWeight: 700, textAlign: "right" }}>{r.v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{
+        padding: "11px 14px", borderRadius: 14, marginBottom: 16,
+        background: C.limeLight, border: `1px solid ${C.limeSoft}`,
+        display: "flex", gap: 8, alignItems: "flex-start"
+      }}>
+        <span style={{ fontSize: 15 }}>💡</span>
+        <span style={{ fontSize: 12, color: C.black, lineHeight: 1.5, textAlign: "left" }}>
+          Цифровая карта уже работает — оплачивайте сейчас. Пластик понадобится для покупок без NFC
+        </span>
+      </div>
+
+      <PrimaryBtn label="Перейти к оплате" onClick={onNext}/>
+    </div>
+  );
+}
+
+function CardIssuanceModal({ clientType, onClose, onComplete }) {
+  const [idx, setIdx] = useState(0);
+  const flow = FLOWS[clientType] || FLOWS.n2b;
+  const route = flow.route;
+  const cur = route[idx];
+
+  const next = () => {
+    if (idx < route.length - 1) setIdx(idx + 1);
+    else onComplete();
+  };
+
+  const screens = {
+    consents:  <ConsentsScreen onNext={next} clientType={clientType}/>,
+    phone:     <PhoneScreen onNext={next}/>,
+    otp:       <OtpScreen onNext={next}/>,
+    form:      <FormScreen onNext={next}/>,
+    issued:    <IssuedScreen onNext={next}/>,
+    select:    <SelectAlfaCardScreen onNext={next}/>,
+    topup:     <TopupScreen onNext={next} onSkip={onComplete}/>,
+    slot:      <SlotScreen onNext={next}/>,
+    delivered: <DeliveredScreen onNext={onComplete}/>,
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.55)",
+      display: "flex", alignItems: "flex-end", justifyContent: "center",
+      animation: "fadeIn .3s ease"
+    }}>
+      <style>{`@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
+      <div style={{
+        width: "100%", maxWidth: 400, background: C.white,
+        borderRadius: "22px 22px 0 0",
+        height: "92vh",
+        animation: "slideUp .35s cubic-bezier(.2,.8,.2,1)",
+        display: "flex", flexDirection: "column"
+      }}>
+        <IssueHeader onClose={onClose} label={flow.label}/>
+        <IssueProgress idx={idx} total={route.length}/>
+        <div style={{
+          flex: "1 1 0", minHeight: 0,
+          overflowY: "auto", WebkitOverflowScrolling: "touch"
+        }}>
+          {screens[cur] || (
+            <div style={{ padding: "40px 16px", textAlign: "center", color: C.sub }}>
+              Шаг «{cur}» не найден
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const ITEMS = [
+  { name: "Билет «Сапсан» Москва → Сочи", price: 6490.00, qty: 1, emoji: "🚄" },
+  { name: "Отель Sea View Hotel, 1 ночь",  price: 4200.00, qty: 1, emoji: "🛏️" },
+  { name: "Аэроэкспресс до Шереметьево",    price: 750.00,  qty: 1, emoji: "🚆" },
+  { name: "Страховка путешественника",      price: 450.00,  qty: 1, emoji: "🛡️" },
+];
+const TOTAL_AMOUNT = ITEMS.reduce((s, i) => s + i.price * i.qty, 0);
+
+function Step1({ onNext }) {
+  return (
+    <div style={{ paddingBottom: 16 }}>
+      {ITEMS.map((item, i) => (
+        <div key={i}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12, background: C.bgWarm,
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0
+            }}>{item.emoji}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.black, lineHeight: 1.3 }}>{item.name}</div>
+              <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>{item.qty} × {item.price.toFixed(2)} ₽</div>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{(item.price * item.qty).toFixed(0)} ₽</div>
+          </div>
+          {i < ITEMS.length - 1 && <Divider mx={16}/>}
+        </div>
+      ))}
+      <Divider/>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px 18px" }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.sub }}>Итого</span>
+        <span style={{ fontSize: 28, fontWeight: 800, color: C.black, letterSpacing: "-0.6px" }}>{TOTAL_AMOUNT.toFixed(0)} ₽</span>
+      </div>
+      <Divider/>
+      <div style={{ padding: "14px 16px 0" }}>
+        <div style={{
+          padding: "14px 16px", borderRadius: 16, cursor: "pointer",
+          background: C.lime, display: "flex", alignItems: "center", gap: 12
+        }} onClick={onNext}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12, background: C.black,
+            display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            <AppleIcon size={22} color={C.lime}/>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: C.black }}>Карта Туту</div>
+            <div style={{ fontSize: 12, color: C.black, opacity: 0.7, marginTop: 2 }}>Покажите QR для начисления баллов</div>
+          </div>
+          <ChevronRight size={20} color={C.black}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Step2({ onNext }) {
+  const [scanned, setScanned] = useState(false);
+  const [scanning, setScanning] = useState(false);
+
+  const handleScan = () => {
+    if (scanned) return;
+    setScanning(true);
+    setTimeout(() => { setScanning(false); setScanned(true); }, 1800);
+  };
+
+  return (
+    <div style={{ paddingBottom: 16 }}>
+      <div style={{ padding: "14px 16px 12px", display: "flex", alignItems: "center", gap: 14 }}>
+        <YabloPayCardSvg width={92}/>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: C.black }}>Туту Кошелёк</div>
+          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>*4209 · Баланс 1 850 ₽</div>
+          <div style={{ fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ fontSize: 13 }}>✦</span>
+            <span style={{ color: C.black, fontWeight: 700 }}>1 240 баллов</span>
+            <span style={{ color: C.sub }}>= 124 ₽</span>
+          </div>
+        </div>
+      </div>
+      <Divider/>
+      <div style={{ padding: "20px 16px 12px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{
+          padding: 14, background: scanned ? C.lime : C.white,
+          borderRadius: 18, position: "relative",
+          border: `2px solid ${scanned ? C.black : scanning ? C.lime : C.border}`,
+          transition: "all .3s", cursor: "pointer"
+        }} onClick={handleScan}>
+          <QrCodeSvg size={172} highlight={!scanned}/>
+          {scanning && !scanned && (
+            <div style={{ position: "absolute", inset: 14, borderRadius: 12, overflow: "hidden", pointerEvents: "none" }}>
+              <div style={{
+                position: "absolute", left: 0, right: 0, height: 2.5,
+                background: `linear-gradient(90deg, transparent, ${C.black}, transparent)`,
+                animation: "laser 1.4s ease-in-out infinite"
+              }}/>
+              <style>{`@keyframes laser{0%,100%{top:10%}50%{top:88%}}`}</style>
+            </div>
+          )}
+          {scanned && (
+            <div style={{
+              position: "absolute", inset: 0, borderRadius: 16,
+              background: "rgba(214,227,0,0.3)",
+              display: "flex", alignItems: "center", justifyContent: "center"
+            }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: "50%", background: C.black,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                animation: "pop .4s ease"
+              }}>
+                <CheckIcon size={32} color={C.lime}/>
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ marginTop: 14, textAlign: "center" }}>
+          {scanned
+            ? <div style={{ color: C.black, fontWeight: 800, fontSize: 15 }}>✓ Карта распознана</div>
+            : scanning
+            ? <div style={{ color: C.black, fontSize: 14, fontWeight: 600 }}>Сканирование…</div>
+            : <>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.black, marginBottom: 4 }}>Покажите QR на кассе</div>
+                <div style={{ fontSize: 12, color: C.sub }}>или нажмите для симуляции сканирования</div>
+              </>
+          }
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <span style={{ fontSize: 11, color: C.sub, letterSpacing: 1.5, fontFamily: "monospace" }}>4830 0011 8274 6619</span>
+        </div>
+      </div>
+      {scanned && (
+        <div style={{
+          margin: "0 16px 12px", padding: "13px 16px", borderRadius: 14,
+          background: C.lime, display: "flex", alignItems: "center", gap: 12
+        }}>
+          <span style={{ fontSize: 22 }}>✦</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: C.black }}>+{Math.floor(TOTAL_AMOUNT * 0.05)} баллов</div>
+            <div style={{ fontSize: 11, color: C.black, opacity: 0.7, marginTop: 2 }}>Начислим после оплаты</div>
+          </div>
+        </div>
+      )}
+      <div style={{
+        margin: "0 16px 14px", padding: "10px 14px", borderRadius: 12,
+        background: C.bgWarm, border: `1px solid ${C.border}`,
+        display: "flex", gap: 8, alignItems: "flex-start"
+      }}>
+        <span style={{ fontSize: 14 }}>⚠️</span>
+        <span style={{ fontSize: 12, color: C.text2, lineHeight: 1.5 }}>
+          Не передавайте QR третьим лицам — код даёт доступ к вашим баллам
+        </span>
+      </div>
+      <div style={{ padding: "0 16px" }}>
+        <PrimaryBtn label={scanned ? "Перейти к оплате →" : "Пропустить"} onClick={onNext} secondary={!scanned}/>
+      </div>
+    </div>
+  );
+}
+
+const BNPL_PLANS = [
+  { parts: 2, label: "2 части", per: "Сейчас и через 2 нед.", badge: "Без %" },
+  { parts: 4, label: "4 части", per: "Каждые 2 недели",       badge: "Без %" },
+];
+const REV_PLANS = [
+  { months: 6,  rate: 0,   label: "6 мес",  badge: "Без %"    },
+  { months: 12, rate: 5.9, label: "12 мес", badge: "5.9%/мес" },
+  { months: 24, rate: 9.9, label: "24 мес", badge: "9.9%/мес" },
+];
+const CREDIT_LIMIT = 60000;
+
+function Step3({ loyaltyScanned, hasYablo, onPay, onIssue }) {
+  const [method, setMethod] = useState(hasYablo ? "yablo" : "card");
+  const [bnplPlan, setBnplPlan] = useState(1);
+  const [revPlan, setRevPlan] = useState(0);
+  const [usePoints, setUsePoints] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => { if (hasYablo) setMethod("yablo"); }, [hasYablo]);
+
+  const pointsVal = loyaltyScanned && usePoints ? 124 : 0;
+  const finalAmount = TOTAL_AMOUNT - pointsVal;
+  const rev = REV_PLANS[revPlan];
+  const revMonthly = Math.ceil(finalAmount / rev.months * (1 + rev.rate / 100));
+
+  const pay = () => {
+    setLoading(true);
+    const labels = {
+      yablo:     "Туту Кошелёк · карта *4209",
+      bnpl:      `Рассрочка ${BNPL_PLANS[bnplPlan].label}`,
+      revolving: `Кредитный лимит ${REV_PLANS[revPlan].label}`,
+      card:      "Банковская карта",
+    };
+    setTimeout(() => { setLoading(false); onPay(finalAmount, loyaltyScanned ? Math.floor(finalAmount * 0.05) : 0, labels[method]); }, 1800);
+  };
+
+  return (
+    <div style={{ paddingBottom: 16 }}>
+      <div style={{
+        margin: "12px 16px 0", padding: "16px 18px", borderRadius: 16,
+        background: loyaltyScanned ? C.lime : C.bgWarm,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.black, opacity: 0.6 }}>К оплате</span>
+          <span style={{ fontSize: 28, fontWeight: 800, color: C.black, letterSpacing: "-0.5px" }}>{finalAmount.toFixed(0)} ₽</span>
+        </div>
+        {loyaltyScanned && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 14 }}>✦</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: C.black }}>Списать 1 240 баллов</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.black }}>–124 ₽</span>
+              <div onClick={() => setUsePoints(!usePoints)} style={{
+                width: 36, height: 22, borderRadius: 11, cursor: "pointer",
+                background: usePoints ? C.black : "rgba(0,0,0,0.2)", position: "relative", transition: "background .2s"
+              }}>
+                <div style={{
+                  width: 16, height: 16, borderRadius: "50%", background: C.white,
+                  position: "absolute", top: 3, left: usePoints ? 17 : 3,
+                  transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+                }}/>
+              </div>
+            </div>
+          </div>
+        )}
+        {loyaltyScanned
+          ? <div style={{ fontSize: 11, color: C.black, fontWeight: 700, marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>+{Math.floor(finalAmount * 0.05)} ✦ начислим после покупки</div>
+          : <div style={{ fontSize: 12, color: C.sub, marginTop: 6 }}>ℹ️ Карта Туту не отсканирована — баллы не начислятся</div>
+        }
+      </div>
+
+      <div style={{ padding: "16px 16px 8px 19px", fontSize: 11, fontWeight: 700, color: C.sub, letterSpacing: "0.3px" }}>
+        Способ оплаты
+      </div>
+
+      {hasYablo ? (
+        <RadioRow selected={method === "yablo"} onClick={() => setMethod("yablo")}
+          icon="✦" title="Туту Кошелёк" sub="Кошелёк *4209 · МИР" badge="+5% баллами" badgeLime/>
+      ) : (
+        <div onClick={onIssue} style={{
+          margin: "0 16px 4px", padding: "16px 18px",
+          background: C.lime, borderRadius: 16, cursor: "pointer", color: C.black,
+          display: "flex", alignItems: "center", gap: 12,
+          position: "relative", overflow: "hidden"
+        }}>
+          <div style={{
+            position: "absolute", top: -20, right: -20, width: 120, height: 120,
+            borderRadius: "50%", background: C.black, opacity: 0.06
+          }}/>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14, background: C.black,
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            position: "relative"
+          }}>
+            <AppleIcon size={26} color={C.lime}/>
+          </div>
+          <div style={{ flex: 1, position: "relative" }}>
+            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.2px" }}>Открыть Туту Кошелёк</div>
+            <div style={{ fontSize: 12, marginTop: 3, opacity: 0.75, fontWeight: 500 }}>30 секунд · +200 welcome-баллов</div>
+          </div>
+          <div style={{
+            padding: "6px 11px", borderRadius: 100,
+            background: C.black, color: C.lime, fontSize: 11, fontWeight: 800,
+            position: "relative"
+          }}>+200 ✦</div>
+        </div>
+      )}
+      <Divider mx={16}/>
+
+      <RadioRow selected={method === "bnpl"} onClick={() => setMethod("bnpl")}
+        icon="📦" title="Рассрочка"
+        sub={method === "bnpl"
+          ? `${BNPL_PLANS[bnplPlan].label} · ${(finalAmount / BNPL_PLANS[bnplPlan].parts).toFixed(0)} ₽/платёж`
+          : "Оплата частями · без %"}
+        badge="Без %" badgeLime/>
+      {method === "bnpl" && (
+        <div style={{ background: C.limeLight, borderLeft: `3px solid ${C.lime}`, padding: "0 16px 14px" }}>
+          <div style={{ display: "flex", gap: 8, paddingTop: 12 }}>
+            {BNPL_PLANS.map((p, i) => (
+              <button key={i} onClick={() => setBnplPlan(i)} style={{
+                flex: 1, padding: "12px 0", borderRadius: 12, border: "none", cursor: "pointer",
+                background: bnplPlan === i ? C.black : C.white,
+                color: bnplPlan === i ? C.white : C.black,
+                fontFamily: "inherit", transition: "all .18s"
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 800 }}>{p.label}</div>
+                <div style={{ fontSize: 11, marginTop: 2, opacity: 0.75, fontWeight: 600 }}>{(finalAmount / p.parts).toFixed(0)} ₽/раз</div>
+              </button>
+            ))}
+          </div>
+          <div style={{
+            marginTop: 10, padding: "10px 14px", borderRadius: 12, background: C.white,
+            display: "flex", gap: 8, alignItems: "center"
+          }}>
+            <InfoIcon size={13} color={C.black}/>
+            <span style={{ fontSize: 12, color: C.text2 }}>Первый платёж сегодня. Без процентов и скрытых комиссий.</span>
+          </div>
+        </div>
+      )}
+      <Divider mx={16}/>
+
+      <RadioRow selected={method === "revolving"} onClick={() => setMethod("revolving")}
+        icon="♻️" title="Кредитный лимит"
+        sub={`Доступно ${CREDIT_LIMIT.toLocaleString("ru-RU")} ₽ · возобновляемый`}
+        badge="Одобрен" badgeLime/>
+      {method === "revolving" && (
+        <div style={{ background: C.limeLight, borderLeft: `3px solid ${C.lime}`, padding: "0 16px 14px" }}>
+          <div style={{ display: "flex", gap: 8, paddingTop: 12, overflowX: "auto" }}>
+            {REV_PLANS.map((p, i) => (
+              <button key={i} onClick={() => setRevPlan(i)} style={{
+                flexShrink: 0, padding: "10px 14px", borderRadius: 12, border: "none", cursor: "pointer",
+                background: revPlan === i ? C.black : C.white,
+                color: revPlan === i ? C.white : C.black,
+                fontFamily: "inherit", transition: "all .18s"
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 800 }}>{p.label}</div>
+                <div style={{ fontSize: 11, marginTop: 1, opacity: 0.75, fontWeight: 600 }}>{p.badge}</div>
+              </button>
+            ))}
+          </div>
+          <div style={{
+            marginTop: 10, padding: "14px 16px", borderRadius: 14, background: C.white
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 10, color: C.sub, fontWeight: 700 }}>Сумма</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: C.black, marginTop: 2 }}>{finalAmount.toFixed(0)} ₽</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 10, color: C.sub, fontWeight: 700 }}>В месяц</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: C.black, marginTop: 2 }}>~{revMonthly} ₽</div>
+              </div>
+            </div>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <span style={{ fontSize: 10, color: C.sub }}>Лимит {CREDIT_LIMIT.toLocaleString("ru-RU")} ₽</span>
+                <span style={{ fontSize: 10, color: C.black, fontWeight: 700 }}>
+                  Остаток {(CREDIT_LIMIT - finalAmount).toLocaleString("ru-RU", { maximumFractionDigits: 0 })} ₽
+                </span>
+              </div>
+              <div style={{ height: 5, borderRadius: 3, background: C.bg }}>
+                <div style={{
+                  height: "100%", borderRadius: 3, background: C.lime,
+                  width: `${(finalAmount / CREDIT_LIMIT * 100).toFixed(1)}%`
+                }}/>
+              </div>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 11, color: C.sub }}>♻️ Погашенные средства снова доступны</div>
+          </div>
+        </div>
+      )}
+      <Divider mx={16}/>
+
+      <RadioRow selected={method === "card"} onClick={() => setMethod("card")}
+        icon="💳" title="Банковская карта" sub="Visa, Mastercard, МИР"/>
+
+      <div style={{ padding: "18px 16px 0" }}>
+        <PrimaryBtn label={
+          method === "bnpl"
+            ? `${BNPL_PLANS[bnplPlan].parts} × ${(finalAmount / BNPL_PLANS[bnplPlan].parts).toFixed(0)} ₽`
+            : method === "revolving"
+            ? `~${revMonthly} ₽/мес · ${rev.months} мес`
+            : `Оплатить ${finalAmount.toFixed(0)} ₽`
+        } onClick={pay} loading={loading}/>
+      </div>
+      <div style={{ textAlign: "center", marginTop: 14, fontSize: 11, color: C.sub, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+        🔒 Защищено · PCI DSS · Альфа-Банк
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [mode, setMode] = useState("offline");
+  const [step, setStep] = useState(0);
+  const [loyaltyScanned, setLoyaltyScanned] = useState(false);
+  const [success, setSuccess] = useState(null);
+  const [clientType, setClientType] = useState("has_yablo");
+  const [issuanceOpen, setIssuanceOpen] = useState(false);
+
+  const reset = () => { setSuccess(null); setStep(0); setLoyaltyScanned(false); };
+  const hasYablo = clientType === "has_yablo";
+
+  if (success) return <SuccessScreen amount={success.amount} bonuses={success.bonuses} method={success.method} onReset={reset}/>;
+
+  const stepTitles = ["Корзина", "Карта Туту", "Оплата"];
+  const segments = [
+    { k: "has_yablo", l: "С Туту Кошельком" },
+    { k: "n2b",       l: "N2B" },
+    { k: "existing",  l: "Действующий" },
+  ];
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: C.bg,
+      fontFamily: "'Manrope','SF Pro Text',-apple-system,BlinkMacSystemFont,sans-serif",
+      color: C.black, display: "flex", flexDirection: "column", alignItems: "center"
+    }}>
+      <div style={{ width: "100%", maxWidth: 400 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 20px 6px", fontSize: 12, fontWeight: 600, color: C.black }}>
+          <span>9:41</span>
+          <div style={{ display: "flex", gap: 4 }}>▐▐▐ WiFi 🔋</div>
+        </div>
+
+        <div style={{ padding: "0 12px 8px" }}>
+          <div style={{
+            background: C.black, borderRadius: 14, padding: "11px 13px",
+            color: C.white
+          }}>
+            <div style={{
+              fontSize: 9, fontWeight: 800, letterSpacing: 1.2,
+              textTransform: "uppercase", color: C.lime, marginBottom: 8,
+              display: "flex", alignItems: "center", gap: 6
+            }}>
+              <span style={{
+                width: 14, height: 14, borderRadius: 3, background: C.alfaRed,
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                fontSize: 9, fontWeight: 800, color: C.white
+              }}>A</span>
+              Демо CJM · Тип клиента
+            </div>
+            <div style={{ display: "flex", gap: 4 }}>
+              {segments.map(s => (
+                <button key={s.k} onClick={() => { setClientType(s.k); reset(); }} style={{
+                  flex: 1, padding: "8px 6px", borderRadius: 100, border: "none",
+                  background: clientType === s.k ? C.lime : "rgba(255,255,255,0.1)",
+                  color: clientType === s.k ? C.black : "rgba(255,255,255,0.85)",
+                  fontSize: 11, fontWeight: 700, cursor: "pointer",
+                  fontFamily: "inherit", transition: "all .18s"
+                }}>{s.l}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", padding: "10px 16px 10px", gap: 12 }}>
+          <button onClick={() => step > 0 ? setStep(step - 1) : null} style={{
+            width: 36, height: 36, borderRadius: "50%", border: `1px solid ${C.border}`,
+            background: C.card, cursor: "pointer", fontSize: 16,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: C.black
+          }}>←</button>
+          <div style={{ flex: 1, fontSize: 17, fontWeight: 800, color: C.black, letterSpacing: "-0.4px" }}>
+            {mode === "online" ? "Оплата" : stepTitles[step]}
+          </div>
+          <GoldappleLogo size={28}/>
+        </div>
+
+        <div style={{ padding: "0 16px 12px" }}>
+          <div style={{
+            display: "flex", gap: 4, background: C.card, borderRadius: 100, padding: 4,
+            border: `1px solid ${C.border}`
+          }}>
+            {[{ k: "online", l: "🌐 Сайт" }, { k: "offline", l: "🎫 Касса" }].map(m => (
+              <button key={m.k} onClick={() => { setMode(m.k); setStep(0); }} style={{
+                flex: 1, padding: "9px 0", borderRadius: 100, border: "none",
+                background: mode === m.k ? C.black : "transparent",
+                color: mode === m.k ? C.white : C.sub,
+                fontSize: 13, fontWeight: 700, cursor: "pointer",
+                transition: "all .2s", fontFamily: "inherit"
+              }}>{m.l}</button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{
+          background: C.card, borderRadius: 18, margin: "0 12px",
+          border: `1px solid ${C.border}`, overflow: "hidden"
+        }}>
+          <div style={{ height: 4, background: C.lime }}/>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 12, padding: "14px 16px 12px",
+            borderBottom: `1px solid ${C.border}`
+          }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: "50%", background: C.lime,
+              display: "flex", alignItems: "center", justifyContent: "center"
+            }}>
+              <AppleIcon size={24} color={C.black}/>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.black, letterSpacing: "-0.2px" }}>Туту</div>
+              <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>
+                {mode === "offline" ? "Касса Туту · Ленинградский вокзал, м.7" : "Сайт Туту · заказ #TT-38219"}
+              </div>
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: C.black, letterSpacing: "-0.3px" }}>{TOTAL_AMOUNT.toFixed(0)} ₽</div>
+          </div>
+
+          {mode === "offline" && (
+            <div style={{ padding: "16px 16px 4px" }}>
+              <StepBar step={step}/>
+            </div>
+          )}
+
+          {mode === "offline" && step === 0 && <Step1 onNext={() => setStep(1)}/>}
+          {mode === "offline" && step === 1 && (
+            <Step2 onNext={() => { setLoyaltyScanned(true); setStep(2); }}/>
+          )}
+          {mode === "offline" && step === 2 && (
+            <Step3 loyaltyScanned={loyaltyScanned} hasYablo={hasYablo}
+              onPay={(a, b, m) => setSuccess({ amount: a, bonuses: b, method: m })}
+              onIssue={() => setIssuanceOpen(true)}/>
+          )}
+          {mode === "online" && (
+            <Step3 loyaltyScanned={true} hasYablo={hasYablo}
+              onPay={(a, b, m) => setSuccess({ amount: a, bonuses: b, method: m })}
+              onIssue={() => setIssuanceOpen(true)}/>
+          )}
+        </div>
+
+        <div style={{ padding: "18px 0 40px", textAlign: "center" }}>
+          <span style={{ fontSize: 11, color: C.sub }}>🔒 Защищено · PCI DSS · Альфа-Банк</span>
+        </div>
+      </div>
+
+      {issuanceOpen && (
+        <CardIssuanceModal
+          clientType={clientType === "has_yablo" ? "n2b" : clientType}
+          onClose={() => setIssuanceOpen(false)}
+          onComplete={() => { setIssuanceOpen(false); setClientType("has_yablo"); }}
+        />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById('root'));
+</script>
+</body>
+</html>
